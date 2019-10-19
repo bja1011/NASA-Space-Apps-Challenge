@@ -11,6 +11,7 @@ import { debounceTime, delay, filter, skipUntil, take, takeLast, tap } from 'rxj
 import * as GameActions from '../../../../store/actions/game.actions';
 import { of } from 'rxjs';
 import * as R from 'ramda';
+import { LinesMesh } from 'babylonjs/Meshes/linesMesh';
 
 export class PlanetsScene extends MyScene {
   private camera: B.ArcRotateCamera;
@@ -85,6 +86,7 @@ export class PlanetsScene extends MyScene {
     this.camera.pinchDeltaPercentage = 5;
     this.camera.wheelPrecision = 0.5;
     this.ambientColor = new B.Color3(1, 1, 1);
+    this.clearColor = new B.Color4(0, 0, 0.2, 1);
 
     // const ambientLight = new B.HemisphericLight('HemiLight', new B.Vector3(100, 0, 0), this);
     // ambientLight.intensity = 0.5;
@@ -173,11 +175,15 @@ export class PlanetsScene extends MyScene {
   }
 
   private pickPlanet(pickResult: B.PickingInfo) {
-    this.planets.forEach(planetMesh => planetMesh.material = this.baseMaterial);
+    this.planets.forEach((planetMesh: SpaceObjectMesh) => {
+      planetMesh.lines.isVisible = false;
+      planetMesh.material = this.baseMaterial;
+    });
 
     if (!pickResult.pickedMesh.name.includes('star')) {
       pickResult.pickedMesh.material = this.selectedMaterial;
       this.gameService.store.dispatch(new GameActions.PickPlanet((pickResult.pickedMesh as any).objectState));
+      (pickResult.pickedMesh as SpaceObjectMesh).lines.isVisible = true;
     } else {
       this.gameService.store.dispatch(new GameActions.PickPlanet(null));
     }
@@ -279,23 +285,39 @@ export class PlanetsScene extends MyScene {
   }
 
   private startSimulation() {
-    let alpha = 0;
+
+    this.planets.forEach((planet: SpaceObjectMesh) => {
+      const myPoints = [];
+      for (let i = -0.1; i <= 2 * Math.PI; i += 0.1) {
+        myPoints.push(new B.Vector3(planet.objectState.position.x * Math.sin(i), planet.objectState.position.y, planet.objectState.position.x * 0.6 * Math.cos(i)));
+      }
+
+      planet.lines = B.MeshBuilder.CreateLines(`lines-${planet.id}`, {points: myPoints}, this);
+      planet.lines.isVisible = false;
+    });
+
     this.beforeRender = () => {
-      const planet = this.planets[0];
-      planet.position = new B.Vector3(100 * Math.sin(alpha), this.stars[0].position.y, 100 * Math.cos(alpha));
-      // moon.position = new B.Vector3(5 * Math.sin(alpha), moon.parent.position.y, 5 * Math.cos(alpha));
+      this.planets.forEach((planet: SpaceObjectMesh) => {
+        const alpha = planet.objectState.tempAlpha;
+        if (!planet.objectState.tempAlpha) {
+          planet.objectState.tempAlpha = 0;
+        }
 
-      alpha += 0.005;
+        planet.position = new B.Vector3(planet.objectState.position.x * Math.sin(alpha), planet.objectState.position.y, planet.objectState.position.x * 0.6 * Math.cos(alpha));
+        // moon.position = new B.Vector3(5 * Math.sin(alpha), moon.parent.position.y, 5 * Math.cos(alpha));
 
-      // spin
-//		planet.rotate(BABYLON.Axis.Y, 0.05, BABYLON.Space.WORLD);
-//		planet.rotate(BABYLON.Axis.Y, 0.05, BABYLON.Space.LOCAL);
-//		moon.rotate(BABYLON.Axis.Y, -0.05, BABYLON.Space.LOCAL);
+        planet.objectState.tempAlpha += 0.005 * planet.objectState.speed;
+
+        // spin
+        // planet.rotate(B.Axis.Y, 0.05, B.Space.WORLD);
+        // planet.rotate(B.Axis.Y, 0.05, B.Space.LOCAL);
+      });
     };
-
   }
 }
 
 export interface SpaceObjectMesh extends B.Mesh {
   objectState: any;
+  tempAlpha: number;
+  lines: LinesMesh;
 }

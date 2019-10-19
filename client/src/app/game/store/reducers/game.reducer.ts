@@ -86,6 +86,6 @@ function createEmptyPlanet(existingPlanets?: Planet[]): Planet {
     id,
     name: `planet-${id}`,
     radius: Math.floor(10 + 30 * Math.random()),
-    speed: 1
+    speed: Math.random() * 2
   });
 }
