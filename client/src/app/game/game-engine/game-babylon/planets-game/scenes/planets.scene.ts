@@ -5,9 +5,9 @@ import { GameService } from '../../../../services/game.service';
 import { GameEvent } from '../../../interfaces/game.interfaces';
 import { GAME_EVENTS } from '../../../../constants/game.constants';
 import { select } from '@ngrx/store';
-import { selectPlanets } from '../../../../store/selectors/game.selectors';
+import { selectPickedPlanet, selectPlanets } from '../../../../store/selectors/game.selectors';
 import { Planet } from '../../../../store/interfaces/game.interfaces';
-import { filter } from 'rxjs/operators';
+import { filter, take, tap } from 'rxjs/operators';
 import * as GameActions from '../../../../store/actions/game.actions';
 
 export class PlanetsScene extends MyScene {
@@ -37,7 +37,7 @@ export class PlanetsScene extends MyScene {
 
     this.selectedMaterial = new B.StandardMaterial('base-red', this);
     this.selectedMaterial.diffuseColor = new B.Color3(1, 0, 0);
-    this.selectedMaterial.emissiveColor = new B.Color3(1, 0, 0);
+    this.selectedMaterial.emissiveColor = new B.Color3(0.3, 0, 0);
 
     this.createStar();
     const guiFolder = this.gameService.gui.addFolder('Scene');
@@ -55,8 +55,9 @@ export class PlanetsScene extends MyScene {
     this.gameService
       .store
       .pipe(
+        select(selectPlanets),
         filter(state => !!state),
-        select(selectPlanets)
+        take(1)
       )
       .subscribe((state: Planet[]) => {
         state
@@ -64,6 +65,13 @@ export class PlanetsScene extends MyScene {
             this.createPlanet(planetState);
           });
       });
+
+    this.gameService.store
+      .pipe(
+        select(selectPickedPlanet),
+        filter(state => !!state),
+      )
+      .subscribe(this.createPlanet.bind(this));
   }
 
   setCamera() {
@@ -119,19 +127,18 @@ export class PlanetsScene extends MyScene {
   }
 
   createPlanet(params: Planet) {
-
-    const existingPlanetMesh = this.planets.find((planetMesh: any) => planetMesh.state.id === params.id);
+    const existingPlanetMesh = this.planets.find((planetMesh: any) => planetMesh.objectState.id === params.id);
     if (existingPlanetMesh) {
-      this.updatePlanet(existingPlanetMesh, params);
+      this.updatePlanet(existingPlanetMesh as SpaceObjectMesh, params);
       return;
     }
 
     const planet = B.MeshBuilder.CreateSphere(params.name, {
       diameter: 1
-    });
-    planet.position.set(params.location.x, params.location.y, params.location.z);
+    }) as SpaceObjectMesh;
+    planet.position.set(params.position.x, params.position.y, params.position.z);
     planet.scaling.setAll(params.radius);
-    (planet as any).state = params;
+    planet.objectState = params;
 
     planet.isPickable = true;
 
@@ -151,10 +158,6 @@ export class PlanetsScene extends MyScene {
     const gravityVector = new B.Vector3(0, -9.81, 0);
     const physicsPlugin = new B.CannonJSPlugin(true, 10, cannon);
     this.enablePhysics(gravityVector, physicsPlugin);
-  }
-
-  private createObjects() {
-    this.camera.lockedTarget = this.testPlanet;
   }
 
   private handleGameEvent(event: GameEvent) {
@@ -190,7 +193,7 @@ export class PlanetsScene extends MyScene {
     ]);
     this.camera.animations.push(animation);
     this.beginAnimation(this.camera, 0, 100, false, 3);
-    this.gameService.store.dispatch(new GameActions.PickPlanet((pickResult.pickedMesh as any).state));
+    this.gameService.store.dispatch(new GameActions.PickPlanet((pickResult.pickedMesh as any).objectState));
   }
 
   setCameraSize(radius: number) {
@@ -221,8 +224,59 @@ export class PlanetsScene extends MyScene {
     this.beginAnimation(this.camera, 0, 100, false, 2);
   }
 
-  private updatePlanet(existingPlanetMesh: B.Mesh, newState: Planet) {
-    console.log(existingPlanetMesh);
-    existingPlanetMesh.scaling.setAll(newState.radius);
+  private updatePlanet(existingPlanetMesh: SpaceObjectMesh, newState: Planet) {
+    (existingPlanetMesh as any).objectState = newState;
+
+    this.animateScale(existingPlanetMesh, newState.radius);
+    this.animatePosition(existingPlanetMesh, newState.position.x);
+    // existingPlanetMesh.scaling.setAll(newState.radius);
+    // existingPlanetMesh.position.set(newState.location.x, newState.location.y, newState.location.z);
   }
+
+  animateScale(target: B.Mesh, scale: number) {
+    const animation = new B.Animation('scaling', 'scaling', 60, B.Animation.ANIMATIONTYPE_VECTOR3);
+
+    const easingFunction = new B.CircleEase();
+    easingFunction.setEasingMode(B.EasingFunction.EASINGMODE_EASEINOUT);
+    animation.setEasingFunction(easingFunction);
+
+    animation.setKeys([
+      {
+        frame: 0,
+        value: target.scaling
+      },
+      {
+        frame: 100,
+        value: new B.Vector3(scale, scale, scale)
+      }
+    ]);
+    target.animations.push(animation);
+    this.beginAnimation(target, 0, 100, false, 3);
+  }
+
+  animatePosition(target: B.Mesh, position: number) {
+    if (target.position.x === position) {
+      return;
+    }
+    const animation = new B.Animation('position', 'position.x', 60, B.Animation.ANIMATIONTYPE_FLOAT);
+    const easingFunction = new B.CircleEase();
+    easingFunction.setEasingMode(B.EasingFunction.EASINGMODE_EASEINOUT);
+    animation.setEasingFunction(easingFunction);
+    animation.setKeys([
+      {
+        frame: 0,
+        value: target.position.x
+      },
+      {
+        frame: 100,
+        value: position
+      }
+    ]);
+    target.animations.push(animation);
+    this.beginAnimation(target, 0, 100, false, 3);
+  }
+}
+
+export interface SpaceObjectMesh extends B.Mesh {
+  objectState: any;
 }

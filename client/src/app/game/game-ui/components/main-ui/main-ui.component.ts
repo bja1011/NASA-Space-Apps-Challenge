@@ -52,4 +52,14 @@ export class MainUiComponent implements OnInit {
     this.selectedPlanet.radius = $event.value;
     this.gameService.store.dispatch(new GameActions.UpdatePlanet(this.selectedPlanet));
   }
+
+  updateDistance($event: MatSliderChange) {
+    this.selectedPlanet.position.x = $event.value;
+    this.gameService.store.dispatch(new GameActions.UpdatePlanet(this.selectedPlanet));
+  }
+
+  updateMass($event: MatSliderChange) {
+    this.selectedPlanet.mass = $event.value;
+    this.gameService.store.dispatch(new GameActions.UpdatePlanet(this.selectedPlanet));
+  }
 }

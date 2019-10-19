@@ -2,12 +2,31 @@
   <button mat-raised-button (click)="createPlanet()">Create empty Planet</button>
   <ng-container *ngIf="selectedPlanet">
     <br>
+    <br>
     <label> Radius {{selectedPlanet.radius}} <br>
       <mat-slider
         min="0" max="100" step="1" (change)="updateRadius($event)"
         [value]="selectedPlanet.radius"
       ></mat-slider>
     </label>
+
+    <br>
+    <label> Distance from star {{selectedPlanet.position.x}} <br>
+      <mat-slider
+        tickInterval="1"
+        min="0" max="300" step="1" (change)="updateDistance($event)"
+        [value]="selectedPlanet.position.x"
+      ></mat-slider>
+    </label>
+
+    <br>
+    <label> Mass {{selectedPlanet.mass}} <br>
+      <mat-slider
+        min="0" max="30000" step="1" (change)="updateMass($event)"
+        [value]="selectedPlanet.mass"
+      ></mat-slider>
+    </label>
+
   </ng-container>
   <!--  <button mat-raised-button (click)="createStar()">Create empty Star</button>-->
 </div>
