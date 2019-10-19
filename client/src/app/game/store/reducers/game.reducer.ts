@@ -26,6 +26,15 @@ export function reducer(state = initialState, action: GameActions): GameState {
     case GameActionTypes.CREATE_STAR:
       return state;
 
+    case GameActionTypes.UPDATE_PLANET:
+      const planetsUpdated = R.clone(state.planets).filter(planet => planet.id !== action.payload.id);
+      planetsUpdated.push(action.payload);
+      return {
+        ...state,
+        pickedPlanet: action.payload,
+        planets: planetsUpdated
+      };
+
     case GameActionTypes.CREATE_PLANET:
       const planets = R.clone(state.planets);
       planets.push(createEmptyPlanet(planets));
@@ -57,12 +66,16 @@ function createPlanet(params: Planet) {
   return planet;
 }
 
-function createEmptyPlanet(existingPlanets: Planet[]): Planet {
-  let x = 30;
+function createEmptyPlanet(existingPlanets?: Planet[]): Planet {
+  let x = 100;
   let id = 0;
-  if (existingPlanets.length > 0) {
-    const farPlanet = existingPlanets[existingPlanets.length - 1];
-    x = farPlanet.location.x + farPlanet.radius + 30;
+  if (existingPlanets && existingPlanets.length > 0) {
+    const highestId = existingPlanets.map(planet => planet.id).sort().pop();
+    console.log(highestId, existingPlanets)
+    // const farPlanet = existingPlanets[existingPlanets.length - 1];
+    const farPlanet = existingPlanets.find(planet => planet.id === highestId);
+
+    x = farPlanet.location.x + farPlanet.radius + 40;
     id = farPlanet.id + 1;
   }
 
@@ -72,8 +85,8 @@ function createEmptyPlanet(existingPlanets: Planet[]): Planet {
     },
     mass: 1,
     id,
-    name: `planet-${existingPlanets.length}`,
-    radius: 10 + 10 * Math.random(),
+    name: `planet-${id}`,
+    radius: Math.floor(10 + 30 * Math.random()),
     speed: 1
   });
 }

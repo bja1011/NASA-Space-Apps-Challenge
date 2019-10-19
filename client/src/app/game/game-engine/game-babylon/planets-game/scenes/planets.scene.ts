@@ -8,6 +8,7 @@ import { select } from '@ngrx/store';
 import { selectPlanets } from '../../../../store/selectors/game.selectors';
 import { Planet } from '../../../../store/interfaces/game.interfaces';
 import { filter } from 'rxjs/operators';
+import * as GameActions from '../../../../store/actions/game.actions';
 
 export class PlanetsScene extends MyScene {
   private camera: B.ArcRotateCamera;
@@ -26,11 +27,10 @@ export class PlanetsScene extends MyScene {
 
     this.setCamera();
     this.setLightning();
-    this.createObjects();
 
     this.setPhysics();
 
-    // this.createStar();
+    this.createStar();
     this.gameService.gameEmitter.subscribe(event => this.handleGameEvent);
 
     this.baseMaterial = new B.StandardMaterial('base', this);
@@ -64,6 +64,7 @@ export class PlanetsScene extends MyScene {
     this.camera.setPosition(new B.Vector3(0, 0, -550));
     // this.camera.setTarget(B.Vector3.Zero());
     this.camera.attachControl(this.gameService.game.canvas, true);
+    this.camera.panningSensibility = 5;
 
     // this.camera.mode = B.ArcRotateCamera.ORTHOGRAPHIC_CAMERA;
     // this.camera.orthoTop = 35;
@@ -71,7 +72,7 @@ export class PlanetsScene extends MyScene {
     // this.camera.orthoLeft = -35;
     // this.camera.orthoRight = 35;
 
-    // this._scene.fogMode = Scene.FOGMODE_LINEAR;
+    // this.fogMode = B.Scene.FOGMODE_LINEAR;
     // BABYLON.Scene.FOGMODE_NONE;
     // BABYLON.Scene.FOGMODE_EXP;
     // BABYLON.Scene.FOGMODE_EXP2;
@@ -85,40 +86,43 @@ export class PlanetsScene extends MyScene {
 
   createStar() {
     const star = B.MeshBuilder.CreateSphere(`star1`, {
-      diameter: 20,
+      diameter: 100,
     });
+    star.isPickable = false;
+    const emissiveMaterial = new B.StandardMaterial('emissive', this);
+    emissiveMaterial.diffuseColor = new B.Color3(1, 1, 0);
+    // emissiveMaterial.emissiveColor = new B.Color3(1, 1, 0);
+    star.material = emissiveMaterial;
     this.stars.push(star);
+
+    // const glowLayer = new B.GlowLayer('glow', this, {
+    //   mainTextureFixedSize: 256,
+    //   blurKernelSize: 64
+    // });
   }
 
   createPlanet(params: Planet) {
 
-    if (this.planets.find((planetMesh: any) => planetMesh.state.id === params.id)) {
+    const existingPlanetMesh = this.planets.find((planetMesh: any) => planetMesh.state.id === params.id);
+    if (existingPlanetMesh) {
+      this.updatePlanet(existingPlanetMesh, params);
       return;
     }
 
     const planet = B.MeshBuilder.CreateSphere(params.name, {
-      diameter: params.radius
+      diameter: 1
     });
     planet.position.set(params.location.x, params.location.y, params.location.z);
+    planet.scaling.setAll(params.radius);
     (planet as any).state = params;
 
     planet.isPickable = true;
 
     planet.material = this.baseMaterial;
-
-    // planet.actionManager = new B.ActionManager(this);
-    // planet.actionManager.registerAction(
-    //   new B.ExecuteCodeAction(B.ActionManager.OnPickTrigger,
-    //     (event) => {
-    //       const pickedMesh: B.AbstractMesh | any = event.meshUnderPointer;
-    //       pickedMesh.material = BaseMaterialRed;
-    //       console.log(pickedMesh);
-    //       // pickedMesh.dispose();
-    //       this.gameService.store.dispatch(new GameActions.PickPlanet(pickedMesh.state));
-    //     })
-    // );
-
     this.planets.push(planet);
+
+    const radius = planet.position.x;
+    // this.setCameraSize(radius);
   }
 
   setLightning() {
@@ -151,6 +155,12 @@ export class PlanetsScene extends MyScene {
     this.planets.forEach(planetMesh => planetMesh.material = this.baseMaterial);
     pickResult.pickedMesh.material = this.selectedMaterial;
     const animation = new B.Animation('target', 'target', 60, B.Animation.ANIMATIONTYPE_VECTOR3);
+
+    const easingFunction = new B.CircleEase();
+    easingFunction.setEasingMode(B.EasingFunction.EASINGMODE_EASEINOUT);
+
+    animation.setEasingFunction(easingFunction);
+
     animation.setKeys([
       {
         frame: 0,
@@ -162,6 +172,40 @@ export class PlanetsScene extends MyScene {
       }
     ]);
     this.camera.animations.push(animation);
+    this.beginAnimation(this.camera, 0, 100, false, 3);
+    this.gameService.store.dispatch(new GameActions.PickPlanet((pickResult.pickedMesh as any).state));
+  }
+
+  setCameraSize(radius: number) {
+    const aspectRatio = this.gameService.game.engine.getAspectRatio(this.camera);
+    let halfMinFov = this.camera.fov / 2;
+    if (aspectRatio < 1) {
+      halfMinFov = Math.atan(aspectRatio * Math.tan(this.camera.fov / 2));
+    }
+    const viewRadius = Math.abs(radius / Math.sin(halfMinFov));
+
+    const animation = new B.Animation('radius', 'radius', 60, B.Animation.ANIMATIONTYPE_FLOAT);
+
+    const easingFunction = new B.CircleEase();
+    easingFunction.setEasingMode(B.EasingFunction.EASINGMODE_EASEINOUT);
+
+    animation.setEasingFunction(easingFunction);
+    animation.setKeys([
+      {
+        frame: 0,
+        value: this.camera.radius
+      },
+      {
+        frame: 100,
+        value: viewRadius
+      }
+    ]);
+    this.camera.animations.push(animation);
     this.beginAnimation(this.camera, 0, 100, false, 2);
+  }
+
+  private updatePlanet(existingPlanetMesh: B.Mesh, newState: Planet) {
+    console.log(existingPlanetMesh);
+    existingPlanetMesh.scaling.setAll(newState.radius);
   }
 }

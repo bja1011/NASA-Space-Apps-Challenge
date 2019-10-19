@@ -1,10 +1,15 @@
-<ng-container>
+<div class="left-nav">
   <button mat-raised-button (click)="createPlanet()">Create empty Planet</button>
-  <button mat-raised-button (click)="createStar()">Create empty Star</button>
-  <div>
-    selected: {{(selectedPlanet$ | async)?.name}}
-
-  </div>
-</ng-container>
+  <ng-container *ngIf="selectedPlanet">
+    <br>
+    <label> Radius {{selectedPlanet.radius}} <br>
+      <mat-slider
+        min="0" max="100" step="1" (change)="updateRadius($event)"
+        [value]="selectedPlanet.radius"
+      ></mat-slider>
+    </label>
+  </ng-container>
+  <!--  <button mat-raised-button (click)="createStar()">Create empty Star</button>-->
+</div>
 
 <!--<app-bottom-buttons></app-bottom-buttons>-->

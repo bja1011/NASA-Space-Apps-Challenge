@@ -10,7 +10,7 @@ export class MyGame {
   gameService: GameService;
   scene: MyScene;
   readonly canvas: HTMLCanvasElement;
-  private readonly engine: Engine;
+  public readonly engine: Engine;
 
   constructor(gameService: GameService, canvasElement: string) {
     this.canvas = document.getElementById(canvasElement) as HTMLCanvasElement;
