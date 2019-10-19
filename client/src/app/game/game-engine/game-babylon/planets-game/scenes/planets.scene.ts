@@ -37,6 +37,7 @@ export class PlanetsScene extends MyScene {
 
     this.selectedMaterial = new B.StandardMaterial('base-red', this);
     this.selectedMaterial.diffuseColor = new B.Color3(1, 0, 0);
+    this.selectedMaterial.emissiveColor = new B.Color3(1, 0, 0);
 
     this.createStar();
     const guiFolder = this.gameService.gui.addFolder('Scene');
@@ -100,7 +101,7 @@ export class PlanetsScene extends MyScene {
     star.isPickable = false;
     const emissiveMaterial = new B.StandardMaterial('emissive', this);
     emissiveMaterial.diffuseColor = new B.Color3(1, 1, 0);
-    emissiveMaterial.emissiveColor = new B.Color3(1, 1, 0);
+    emissiveMaterial.emissiveColor = new B.Color3(0.6, 0.6, 0);
     star.material = emissiveMaterial;
     this.stars.push(star);
   }
