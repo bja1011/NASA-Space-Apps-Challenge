@@ -22,6 +22,8 @@ export class PlanetsScene extends MyScene {
   baseMaterial: B.StandardMaterial;
   selectedMaterial: B.StandardMaterial;
 
+  glowLayer: B.GlowLayer;
+
   constructor(props, gameService: GameService) {
     super(props, gameService);
 
@@ -30,14 +32,18 @@ export class PlanetsScene extends MyScene {
 
     this.setPhysics();
 
-    this.createStar();
-    this.gameService.gameEmitter.subscribe(event => this.handleGameEvent);
-
     this.baseMaterial = new B.StandardMaterial('base', this);
     this.baseMaterial.diffuseColor = new B.Color3(1, 1, 1);
 
     this.selectedMaterial = new B.StandardMaterial('base-red', this);
     this.selectedMaterial.diffuseColor = new B.Color3(1, 0, 0);
+
+    this.createStar();
+    const guiFolder = this.gameService.gui.addFolder('Scene');
+    guiFolder.add(this, 'glowSwitch');
+
+    this.gameService.gameEmitter.subscribe(event => this.handleGameEvent);
+
 
     this.onPointerDown = (evt, pickResult) => {
       if (pickResult.hit) {
@@ -62,9 +68,12 @@ export class PlanetsScene extends MyScene {
   setCamera() {
     this.camera = new B.ArcRotateCamera('camera1', 0, 0, 10, B.Vector3.Zero(), this);
     this.camera.setPosition(new B.Vector3(0, 0, -550));
-    // this.camera.setTarget(B.Vector3.Zero());
     this.camera.attachControl(this.gameService.game.canvas, true);
     this.camera.panningSensibility = 5;
+    this.ambientColor = new B.Color3(1, 1, 1);
+
+    // const ambientLight = new B.HemisphericLight('HemiLight', new B.Vector3(100, 0, 0), this);
+    // ambientLight.intensity = 0.5;
 
     // this.camera.mode = B.ArcRotateCamera.ORTHOGRAPHIC_CAMERA;
     // this.camera.orthoTop = 35;
@@ -91,14 +100,21 @@ export class PlanetsScene extends MyScene {
     star.isPickable = false;
     const emissiveMaterial = new B.StandardMaterial('emissive', this);
     emissiveMaterial.diffuseColor = new B.Color3(1, 1, 0);
-    // emissiveMaterial.emissiveColor = new B.Color3(1, 1, 0);
+    emissiveMaterial.emissiveColor = new B.Color3(1, 1, 0);
     star.material = emissiveMaterial;
     this.stars.push(star);
+  }
 
-    // const glowLayer = new B.GlowLayer('glow', this, {
-    //   mainTextureFixedSize: 256,
-    //   blurKernelSize: 64
-    // });
+  glowSwitch() {
+    if (!this.glowLayer) {
+      this.glowLayer = new B.GlowLayer('glow', this, {
+        mainTextureFixedSize: 256,
+        blurKernelSize: 64
+      });
+    } else {
+      this.glowLayer.dispose();
+      this.glowLayer = null;
+    }
   }
 
   createPlanet(params: Planet) {

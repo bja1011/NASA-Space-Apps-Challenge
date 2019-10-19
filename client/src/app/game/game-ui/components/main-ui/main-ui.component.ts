@@ -4,7 +4,6 @@ import { Router } from '@angular/router';
 import { GameService } from '../../../services/game.service';
 import { GAME_EVENTS } from '../../../constants/game.constants';
 import * as GameActions from '../../../store/actions/game.actions';
-import * as GUI from 'dat.gui';
 import { Planet } from '../../../store/interfaces/game.interfaces';
 import { select } from '@ngrx/store';
 import { selectPickedPlanet, selectPlanetById } from '../../../store/selectors/game.selectors';
@@ -28,8 +27,6 @@ export class MainUiComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.gui = new GUI.GUI({width: 300});
-
     this.gameService.store
       .pipe(
         select(selectPickedPlanet)
