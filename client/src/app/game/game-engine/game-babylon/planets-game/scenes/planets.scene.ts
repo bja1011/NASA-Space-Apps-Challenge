@@ -45,7 +45,7 @@ export class PlanetsScene extends MyScene {
 
   setCamera() {
     this.camera = new B.ArcRotateCamera('camera1', 0, 0, 10, B.Vector3.Zero(), this);
-    this.camera.setPosition(new B.Vector3(0, 0, -100));
+    this.camera.setPosition(new B.Vector3(0, 0, -50));
     this.camera.setTarget(B.Vector3.Zero());
     this.camera.attachControl(this.gameService.game.canvas, true);
 
@@ -75,15 +75,35 @@ export class PlanetsScene extends MyScene {
   }
 
   createPlanet(params: Planet) {
-    const planet = B.MeshBuilder.CreateIcoSphere(`planet1`, {
-      radius: 10,
+    const planet = B.MeshBuilder.CreateIcoSphere(params.name, {
+      radius: params.radius,
     });
     planet.position.set(params.location.x, params.location.y, params.location.z);
+
+    const BaseMaterial = new B.StandardMaterial('base', this);
+    BaseMaterial.diffuseColor = new B.Color3(1, 1, 1);
+
+    planet.material = BaseMaterial;
+
+    const BaseMaterialRed = new B.StandardMaterial('base', this);
+    BaseMaterialRed.diffuseColor = new B.Color3(1, 0, 0);
+
+    planet.actionManager = new B.ActionManager(this);
+    planet.actionManager.registerAction(
+      new B.ExecuteCodeAction(B.ActionManager.OnPickTrigger,
+        function (event) {
+          const pickedMesh = event.meshUnderPointer;
+          pickedMesh.material = BaseMaterialRed;
+          console.log(pickedMesh);
+          // pickedMesh.dispose();
+        })
+    );
+
     this.planets.push(planet);
   }
 
   setLightning() {
-    this.light = new B.HemisphericLight('light1', new B.Vector3(0, 0, 0), this);
+    this.light = new B.PointLight('light1', new B.Vector3(0, 0, 0), this);
   }
 
   setPhysics() {

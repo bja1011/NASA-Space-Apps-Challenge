@@ -51,9 +51,11 @@ function createPlanet(params: Planet) {
 
 function createEmptyPlanet(existingPlanets: Planet[]): Planet {
   let x = 30;
+  let id = 0;
   if (existingPlanets.length > 0) {
     const farPlanet = existingPlanets[existingPlanets.length - 1];
-    x = farPlanet.location.x + 30;
+    x = farPlanet.location.x + farPlanet.radius + 30;
+    id = farPlanet.id + 1;
   }
 
   return createPlanet({
@@ -61,8 +63,9 @@ function createEmptyPlanet(existingPlanets: Planet[]): Planet {
       x, y: 0, z: 0,
     },
     mass: 1,
-    name: null,
-    radius: 1,
+    id,
+    name: `planet-${existingPlanets.length}`,
+    radius: 10 + 10 * Math.random(),
     speed: 1
   });
 }

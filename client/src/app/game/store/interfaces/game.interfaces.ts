@@ -11,6 +11,7 @@ export interface Star extends SpaceObject {
 
 export interface Planet extends SpaceObject {
   speed: number;
+  id: number;
 }
 
 export interface Location {
