@@ -1,6 +1,10 @@
 <ng-container>
   <button mat-raised-button (click)="createPlanet()">Create empty Planet</button>
   <button mat-raised-button (click)="createStar()">Create empty Star</button>
+  <div>
+    selected: {{(selectedPlanet$ | async)?.name}}
+
+  </div>
 </ng-container>
 
 <!--<app-bottom-buttons></app-bottom-buttons>-->

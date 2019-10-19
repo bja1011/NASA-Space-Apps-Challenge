@@ -5,15 +5,23 @@ import * as R from 'ramda';
 export interface GameState {
   stars: Star[];
   planets: Planet[];
+  pickedPlanet: Planet;
 }
 
 export const initialState: GameState = {
   planets: [],
+  pickedPlanet: null,
   stars: []
 };
 
 export function reducer(state = initialState, action: GameActions): GameState {
   switch (action.type) {
+
+    case GameActionTypes.PICK_PLANET:
+      return {
+        ...state,
+        pickedPlanet: action.payload
+      };
 
     case GameActionTypes.CREATE_STAR:
       return state;

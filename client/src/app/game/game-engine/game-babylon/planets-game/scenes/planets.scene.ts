@@ -18,6 +18,9 @@ export class PlanetsScene extends MyScene {
   private stars: B.Mesh[] = [];
   private planets: B.Mesh[] = [];
 
+  baseMaterial: B.StandardMaterial;
+  selectedMaterial: B.StandardMaterial;
+
   constructor(props, gameService: GameService) {
     super(props, gameService);
 
@@ -30,6 +33,18 @@ export class PlanetsScene extends MyScene {
     // this.createStar();
     this.gameService.gameEmitter.subscribe(event => this.handleGameEvent);
 
+    this.baseMaterial = new B.StandardMaterial('base', this);
+    this.baseMaterial.diffuseColor = new B.Color3(1, 1, 1);
+
+    this.selectedMaterial = new B.StandardMaterial('base-red', this);
+    this.selectedMaterial.diffuseColor = new B.Color3(1, 0, 0);
+
+    this.onPointerDown = (evt, pickResult) => {
+      if (pickResult.hit) {
+        this.pickPlanet(pickResult);
+      }
+    };
+
     this.gameService
       .store
       .pipe(
@@ -37,19 +52,20 @@ export class PlanetsScene extends MyScene {
         select(selectPlanets)
       )
       .subscribe((state: Planet[]) => {
-        state.forEach(planetState => {
-          this.createPlanet(planetState);
-        });
+        state
+          .forEach(planetState => {
+            this.createPlanet(planetState);
+          });
       });
   }
 
   setCamera() {
     this.camera = new B.ArcRotateCamera('camera1', 0, 0, 10, B.Vector3.Zero(), this);
-    this.camera.setPosition(new B.Vector3(0, 0, -50));
-    this.camera.setTarget(B.Vector3.Zero());
+    this.camera.setPosition(new B.Vector3(0, 0, -550));
+    // this.camera.setTarget(B.Vector3.Zero());
     this.camera.attachControl(this.gameService.game.canvas, true);
 
-    this.camera.mode = B.ArcRotateCamera.ORTHOGRAPHIC_CAMERA;
+    // this.camera.mode = B.ArcRotateCamera.ORTHOGRAPHIC_CAMERA;
     // this.camera.orthoTop = 35;
     // this.camera.orthoBottom = -35;
     // this.camera.orthoLeft = -35;
@@ -68,42 +84,46 @@ export class PlanetsScene extends MyScene {
   }
 
   createStar() {
-    const star = B.MeshBuilder.CreateIcoSphere(`star1`, {
-      radius: 10,
+    const star = B.MeshBuilder.CreateSphere(`star1`, {
+      diameter: 20,
     });
     this.stars.push(star);
   }
 
   createPlanet(params: Planet) {
-    const planet = B.MeshBuilder.CreateIcoSphere(params.name, {
-      radius: params.radius,
+
+    if (this.planets.find((planetMesh: any) => planetMesh.state.id === params.id)) {
+      return;
+    }
+
+    const planet = B.MeshBuilder.CreateSphere(params.name, {
+      diameter: params.radius
     });
     planet.position.set(params.location.x, params.location.y, params.location.z);
+    (planet as any).state = params;
 
-    const BaseMaterial = new B.StandardMaterial('base', this);
-    BaseMaterial.diffuseColor = new B.Color3(1, 1, 1);
+    planet.isPickable = true;
 
-    planet.material = BaseMaterial;
+    planet.material = this.baseMaterial;
 
-    const BaseMaterialRed = new B.StandardMaterial('base', this);
-    BaseMaterialRed.diffuseColor = new B.Color3(1, 0, 0);
-
-    planet.actionManager = new B.ActionManager(this);
-    planet.actionManager.registerAction(
-      new B.ExecuteCodeAction(B.ActionManager.OnPickTrigger,
-        function (event) {
-          const pickedMesh = event.meshUnderPointer;
-          pickedMesh.material = BaseMaterialRed;
-          console.log(pickedMesh);
-          // pickedMesh.dispose();
-        })
-    );
+    // planet.actionManager = new B.ActionManager(this);
+    // planet.actionManager.registerAction(
+    //   new B.ExecuteCodeAction(B.ActionManager.OnPickTrigger,
+    //     (event) => {
+    //       const pickedMesh: B.AbstractMesh | any = event.meshUnderPointer;
+    //       pickedMesh.material = BaseMaterialRed;
+    //       console.log(pickedMesh);
+    //       // pickedMesh.dispose();
+    //       this.gameService.store.dispatch(new GameActions.PickPlanet(pickedMesh.state));
+    //     })
+    // );
 
     this.planets.push(planet);
   }
 
   setLightning() {
     this.light = new B.PointLight('light1', new B.Vector3(0, 0, 0), this);
+    this.light.intensity = 4;
   }
 
   setPhysics() {
@@ -125,5 +145,23 @@ export class PlanetsScene extends MyScene {
       default:
         return;
     }
+  }
+
+  private pickPlanet(pickResult: B.PickingInfo) {
+    this.planets.forEach(planetMesh => planetMesh.material = this.baseMaterial);
+    pickResult.pickedMesh.material = this.selectedMaterial;
+    const animation = new B.Animation('target', 'target', 60, B.Animation.ANIMATIONTYPE_VECTOR3);
+    animation.setKeys([
+      {
+        frame: 0,
+        value: this.camera.target.clone()
+      },
+      {
+        frame: 100,
+        value: pickResult.pickedPoint.clone()
+      }
+    ]);
+    this.camera.animations.push(animation);
+    this.beginAnimation(this.camera, 0, 100, false, 2);
   }
 }
