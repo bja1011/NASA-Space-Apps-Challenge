@@ -28,7 +28,7 @@ export function reducer(state = initialState, action: GameActions): GameState {
 
     case GameActionTypes.UPDATE_PLANET:
       const planetsUpdated = R.clone(state.planets).filter(planet => planet.id !== action.payload.id);
-      planetsUpdated.push(action.payload);
+      planetsUpdated.push(R.clone(action.payload));
       return {
         ...state,
         pickedPlanet: R.clone(action.payload),
@@ -67,14 +67,15 @@ function createPlanet(params: Planet) {
 }
 
 function createEmptyPlanet(existingPlanets?: Planet[]): Planet {
-  let x = 100;
+  let x = 300;
   let id = 0;
   if (existingPlanets && existingPlanets.length > 0) {
     const highestId = existingPlanets.map(planet => planet.id).sort().pop();
-    const farPlanet = existingPlanets.find(planet => planet.id === highestId);
+    const farPosition = existingPlanets.map(planet => planet.position.x).sort().pop();
+    const farPlanet = existingPlanets.find(planet => planet.position.x === farPosition);
 
     x = farPlanet.position.x + farPlanet.radius + 40;
-    id = farPlanet.id + 1;
+    id = highestId + 1;
   }
 
   return createPlanet({

@@ -1,5 +1,6 @@
-<div class="left-nav">
+<div class="left-nav" [class.hidden]="panelHidden">
   <button mat-raised-button (click)="createPlanet()">Create empty Planet</button>
+  <button mat-icon-button (click)="switchPanel()">{{panelHidden?'Show':'Hide'}}</button>
   <ng-container *ngIf="selectedPlanet">
     <br>
     <br>
@@ -14,7 +15,7 @@
     <label> Distance from star {{selectedPlanet.position.x}} <br>
       <mat-slider
         tickInterval="1"
-        min="0" max="300" step="1" (change)="updateDistance($event)"
+        min="0" max="1000" step="1" (change)="updateDistance($event)"
         [value]="selectedPlanet.position.x"
       ></mat-slider>
     </label>

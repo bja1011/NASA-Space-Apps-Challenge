@@ -19,6 +19,7 @@ export class MainUiComponent implements OnInit {
 
   gui: any;
   selectedPlanet: Planet;
+  panelHidden: boolean;
 
   constructor(private authService: AuthService,
               private router: Router,
@@ -61,5 +62,9 @@ export class MainUiComponent implements OnInit {
   updateMass($event: MatSliderChange) {
     this.selectedPlanet.mass = $event.value;
     this.gameService.store.dispatch(new GameActions.UpdatePlanet(this.selectedPlanet));
+  }
+
+  switchPanel() {
+    this.panelHidden = !this.panelHidden;
   }
 }

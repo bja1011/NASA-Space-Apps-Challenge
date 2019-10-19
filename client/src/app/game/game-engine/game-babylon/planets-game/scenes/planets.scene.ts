@@ -7,8 +7,10 @@ import { GAME_EVENTS } from '../../../../constants/game.constants';
 import { select } from '@ngrx/store';
 import { selectPickedPlanet, selectPlanets } from '../../../../store/selectors/game.selectors';
 import { Planet } from '../../../../store/interfaces/game.interfaces';
-import { filter, take, tap } from 'rxjs/operators';
+import { debounceTime, delay, filter, skipUntil, take, takeLast, tap } from 'rxjs/operators';
 import * as GameActions from '../../../../store/actions/game.actions';
+import { of } from 'rxjs';
+import * as R from 'ramda';
 
 export class PlanetsScene extends MyScene {
   private camera: B.ArcRotateCamera;
@@ -57,7 +59,6 @@ export class PlanetsScene extends MyScene {
       .pipe(
         select(selectPlanets),
         filter(state => !!state),
-        take(1)
       )
       .subscribe((state: Planet[]) => {
         state
@@ -79,6 +80,8 @@ export class PlanetsScene extends MyScene {
     this.camera.setPosition(new B.Vector3(0, 0, -550));
     this.camera.attachControl(this.gameService.game.canvas, true);
     this.camera.panningSensibility = 5;
+    this.camera.pinchDeltaPercentage = 5;
+    this.camera.wheelPrecision = 0.5;
     this.ambientColor = new B.Color3(1, 1, 1);
 
     // const ambientLight = new B.HemisphericLight('HemiLight', new B.Vector3(100, 0, 0), this);
@@ -106,7 +109,6 @@ export class PlanetsScene extends MyScene {
     const star = B.MeshBuilder.CreateSphere(`star1`, {
       diameter: 100,
     });
-    star.isPickable = false;
     const emissiveMaterial = new B.StandardMaterial('emissive', this);
     emissiveMaterial.diffuseColor = new B.Color3(1, 1, 0);
     emissiveMaterial.emissiveColor = new B.Color3(0.6, 0.6, 0);
@@ -138,7 +140,7 @@ export class PlanetsScene extends MyScene {
     }) as SpaceObjectMesh;
     planet.position.set(params.position.x, params.position.y, params.position.z);
     planet.scaling.setAll(params.radius);
-    planet.objectState = params;
+    planet.objectState = R.clone(params);
 
     planet.isPickable = true;
 
@@ -173,14 +175,18 @@ export class PlanetsScene extends MyScene {
 
   private pickPlanet(pickResult: B.PickingInfo) {
     this.planets.forEach(planetMesh => planetMesh.material = this.baseMaterial);
-    pickResult.pickedMesh.material = this.selectedMaterial;
-    const animation = new B.Animation('target', 'target', 60, B.Animation.ANIMATIONTYPE_VECTOR3);
 
+    if (!pickResult.pickedMesh.name.includes('star')) {
+      pickResult.pickedMesh.material = this.selectedMaterial;
+      this.gameService.store.dispatch(new GameActions.PickPlanet((pickResult.pickedMesh as any).objectState));
+    } else {
+      this.gameService.store.dispatch(new GameActions.PickPlanet(null));
+    }
+
+    const animation = new B.Animation('target', 'target', 60, B.Animation.ANIMATIONTYPE_VECTOR3);
     const easingFunction = new B.CircleEase();
     easingFunction.setEasingMode(B.EasingFunction.EASINGMODE_EASEINOUT);
-
     animation.setEasingFunction(easingFunction);
-
     animation.setKeys([
       {
         frame: 0,
@@ -193,7 +199,6 @@ export class PlanetsScene extends MyScene {
     ]);
     this.camera.animations.push(animation);
     this.beginAnimation(this.camera, 0, 100, false, 3);
-    this.gameService.store.dispatch(new GameActions.PickPlanet((pickResult.pickedMesh as any).objectState));
   }
 
   setCameraSize(radius: number) {
@@ -225,10 +230,10 @@ export class PlanetsScene extends MyScene {
   }
 
   private updatePlanet(existingPlanetMesh: SpaceObjectMesh, newState: Planet) {
-    (existingPlanetMesh as any).objectState = newState;
-
+    existingPlanetMesh.objectState = R.clone(newState);
     this.animateScale(existingPlanetMesh, newState.radius);
     this.animatePosition(existingPlanetMesh, newState.position.x);
+
     // existingPlanetMesh.scaling.setAll(newState.radius);
     // existingPlanetMesh.position.set(newState.location.x, newState.location.y, newState.location.z);
   }
@@ -243,7 +248,7 @@ export class PlanetsScene extends MyScene {
     animation.setKeys([
       {
         frame: 0,
-        value: target.scaling
+        value: target.scaling.clone()
       },
       {
         frame: 100,
@@ -255,21 +260,19 @@ export class PlanetsScene extends MyScene {
   }
 
   animatePosition(target: B.Mesh, position: number) {
-    if (target.position.x === position) {
-      return;
-    }
-    const animation = new B.Animation('position', 'position.x', 60, B.Animation.ANIMATIONTYPE_FLOAT);
+    const animation = new B.Animation('position', 'position', 60, B.Animation.ANIMATIONTYPE_VECTOR3);
     const easingFunction = new B.CircleEase();
     easingFunction.setEasingMode(B.EasingFunction.EASINGMODE_EASEINOUT);
     animation.setEasingFunction(easingFunction);
+    const currentPosition = target.position.clone();
     animation.setKeys([
       {
         frame: 0,
-        value: target.position.x
+        value: currentPosition
       },
       {
         frame: 100,
-        value: position
+        value: new B.Vector3(position, currentPosition.y, currentPosition.y)
       }
     ]);
     target.animations.push(animation);
