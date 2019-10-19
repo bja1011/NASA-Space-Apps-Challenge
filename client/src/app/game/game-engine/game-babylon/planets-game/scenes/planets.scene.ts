@@ -4,6 +4,10 @@ import cannon from 'cannon';
 import { GameService } from '../../../../services/game.service';
 import { GameEvent } from '../../../interfaces/game.interfaces';
 import { GAME_EVENTS } from '../../../../constants/game.constants';
+import { select } from '@ngrx/store';
+import { selectPlanets } from '../../../../store/selectors/game.selectors';
+import { Planet } from '../../../../store/interfaces/game.interfaces';
+import { filter } from 'rxjs/operators';
 
 export class PlanetsScene extends MyScene {
   private camera: B.ArcRotateCamera;
@@ -12,6 +16,7 @@ export class PlanetsScene extends MyScene {
   private testPlanet: B.Mesh;
 
   private stars: B.Mesh[] = [];
+  private planets: B.Mesh[] = [];
 
   constructor(props, gameService: GameService) {
     super(props, gameService);
@@ -22,8 +27,20 @@ export class PlanetsScene extends MyScene {
 
     this.setPhysics();
 
-    this.createStar();
+    // this.createStar();
     this.gameService.gameEmitter.subscribe(event => this.handleGameEvent);
+
+    this.gameService
+      .store
+      .pipe(
+        filter(state => !!state),
+        select(selectPlanets)
+      )
+      .subscribe((state: Planet[]) => {
+        state.forEach(planetState => {
+          this.createPlanet(planetState);
+        });
+      });
   }
 
   setCamera() {
@@ -55,6 +72,14 @@ export class PlanetsScene extends MyScene {
       radius: 10,
     });
     this.stars.push(star);
+  }
+
+  createPlanet(params: Planet) {
+    const planet = B.MeshBuilder.CreateIcoSphere(`planet1`, {
+      radius: 10,
+    });
+    planet.position.set(params.location.x, params.location.y, params.location.z);
+    this.planets.push(planet);
   }
 
   setLightning() {

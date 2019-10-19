@@ -1,7 +1,7 @@
 import { EventEmitter, Injectable } from '@angular/core';
 import { AngularGame, GameEvent } from '../game-engine/interfaces/game.interfaces';
 import { MyGame } from '../game-engine/game-babylon/classes/MyGame.class';
-import { State } from '../store/reducers/game.reducer';
+import { GameState } from '../store/reducers/game.reducer';
 import { Store } from '@ngrx/store';
 
 @Injectable({
@@ -13,7 +13,7 @@ export class GameService {
   game: MyGame;
 
   constructor(
-    public store: Store<State>
+    public store: Store<GameState>
   ) {
   }
 

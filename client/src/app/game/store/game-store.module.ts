@@ -9,7 +9,7 @@ import { GameEffects } from './effects/game.effects';
   declarations: [],
   imports: [
     CommonModule,
-    StoreModule.forFeature('game', fromGame.reducer),
+    StoreModule.forFeature('gameState', fromGame.reducer),
     EffectsModule.forFeature([GameEffects])
   ]
 })
