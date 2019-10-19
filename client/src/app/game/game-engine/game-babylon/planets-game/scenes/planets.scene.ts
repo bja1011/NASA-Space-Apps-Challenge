@@ -1,4 +1,5 @@
 import { MyScene } from '../../classes/MyScene.class';
+import 'babylonjs-procedural-textures';
 import * as B from 'babylonjs';
 import cannon from 'cannon';
 import { GameService } from '../../../../services/game.service';
@@ -38,14 +39,25 @@ export class PlanetsScene extends MyScene {
     this.baseMaterial = new B.StandardMaterial('base', this);
     this.baseMaterial.diffuseColor = new B.Color3(0, 1, 1);
     this.baseMaterial.specularColor = this.baseMaterial.diffuseColor;
+    // this.baseMaterial.diffuseTexture = new BABYLON.NoiseProceduralTexture('texture', 128, this as any) as any;
+
+    const marbleTexture = new BABYLON.MarbleProceduralTexture('marble', 512, this as any) as any;
+    marbleTexture.numberOfBricksHeight = 5;
+    marbleTexture.numberOfBricksWidth = 5;
+    this.baseMaterial.diffuseTexture = marbleTexture;
+
 
     this.selectedMaterial = new B.StandardMaterial('base-red', this);
     this.baseMaterial.diffuseColor = new B.Color3(0, 1, 1);
-    this.baseMaterial.specularColor = this.baseMaterial.diffuseColor;
-    this.selectedMaterial.emissiveColor = this.baseMaterial.diffuseColor;
+    // this.baseMaterial.specularColor = this.baseMaterial.diffuseColor;
 
-    this.selectedMaterial.diffuseColor = new B.Color3(1, 0, 0);
-    this.selectedMaterial.emissiveColor = new B.Color3(1, 0, 0);
+
+    this.selectedMaterial.diffuseTexture = this.baseMaterial.diffuseTexture;
+    // this.selectedMaterial.emissiveTexture = this.baseMaterial.diffuseTexture;
+    this.selectedMaterial.specularPower = 100;
+
+    // this.selectedMaterial.diffuseColor = new B.Color3(1, 0, 0);
+    // this.selectedMaterial.emissiveColor = new B.Color3(1, 0, 0);
 
     this.createStar();
     const guiFolder = this.gameService.gui.addFolder('Scene');
@@ -121,7 +133,8 @@ export class PlanetsScene extends MyScene {
     });
     const emissiveMaterial = new B.StandardMaterial('emissive', this);
     emissiveMaterial.diffuseColor = new B.Color3(1, 1, 0);
-    emissiveMaterial.emissiveColor = new B.Color3(0.9, 0.9, 0);
+    emissiveMaterial.emissiveColor = new B.Color3(0.5, 0.5, 0);
+    // emissiveMaterial.emissiveTexture = new BABYLON.NoiseProceduralTexture('texture', 64, this as any) as any;
     star.material = emissiveMaterial;
     this.stars.push(star);
   }
@@ -129,7 +142,7 @@ export class PlanetsScene extends MyScene {
   glowSwitch() {
     if (!this.glowLayer) {
       this.glowLayer = new B.GlowLayer('glow', this, {
-        mainTextureFixedSize: 64,
+        mainTextureFixedSize: 128,
         blurKernelSize: 64
       });
     } else {
@@ -160,7 +173,7 @@ export class PlanetsScene extends MyScene {
 
   setLightning() {
     this.light = new B.PointLight('light1', new B.Vector3(0, 0, 0), this);
-    this.light.intensity = 4;
+    this.light.intensity = 2;
   }
 
   setPhysics() {
@@ -184,7 +197,7 @@ export class PlanetsScene extends MyScene {
     this.removeOrbitLines();
     this.planets.forEach(planetMesh => {
       planetMesh.material = this.baseMaterial;
-    })
+    });
 
     if (!pickResult.pickedMesh.name.includes('star')) {
       pickResult.pickedMesh.material = this.selectedMaterial;
@@ -268,7 +281,7 @@ export class PlanetsScene extends MyScene {
     for (let i = -0.1; i <= 2 * Math.PI; i += 0.1) {
       myPoints.push(new B.Vector3(planet.objectState.position.x * Math.sin(i), planet.objectState.position.y, planet.objectState.position.x * 0.6 * Math.cos(i)));
     }
-    planet.orbitLines = B.MeshBuilder.CreateDashedLines(`lines-${planet.id}`, {points: myPoints}, this);
+    planet.orbitLines = B.MeshBuilder.CreateDashedLines(`lines-${planet.id}`, {points: myPoints, dashSize: 0.1}, this);
   }
 
   animateScale(target: B.Mesh, scale: number) {
