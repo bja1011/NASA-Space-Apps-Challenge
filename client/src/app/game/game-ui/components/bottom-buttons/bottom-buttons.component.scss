@@ -1,0 +1,17 @@
+.buttons {
+  position: fixed;
+  bottom: 20px;
+  pointer-events: none;
+  left: 0;
+  width: 100vw;
+  display: flex;
+  justify-content: center;
+
+  button {
+    margin: 5px;
+  }
+
+  * {
+    pointer-events: all;
+  }
+}

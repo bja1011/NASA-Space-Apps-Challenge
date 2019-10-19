@@ -1,0 +1,16 @@
+<div class="page">
+  <div class="login-container">
+    <form (ngSubmit)="doLogin()" [formGroup]="loginForm">
+      <mat-form-field>
+        <input matInput formControlName="username" placeholder="Username">
+      </mat-form-field>
+
+      <mat-form-field>
+        <input matInput type="password" formControlName="password" placeholder="Password">
+      </mat-form-field>
+
+      <button mat-raised-button [disabled]="loginForm.invalid">Login</button>
+    </form>
+    <button mat-raised-button (click)="playAsGuest()">Play as Guest</button>
+  </div>
+</div>
