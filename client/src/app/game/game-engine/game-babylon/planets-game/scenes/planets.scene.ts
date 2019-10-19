@@ -73,6 +73,8 @@ export class PlanetsScene extends MyScene {
         filter(state => !!state),
       )
       .subscribe(this.createPlanet.bind(this));
+
+    this.startSimulation();
   }
 
   setCamera() {
@@ -146,9 +148,6 @@ export class PlanetsScene extends MyScene {
 
     planet.material = this.baseMaterial;
     this.planets.push(planet);
-
-    const radius = planet.position.x;
-    // this.setCameraSize(radius);
   }
 
   setLightning() {
@@ -277,6 +276,23 @@ export class PlanetsScene extends MyScene {
     ]);
     target.animations.push(animation);
     this.beginAnimation(target, 0, 100, false, 3);
+  }
+
+  private startSimulation() {
+    let alpha = 0;
+    this.beforeRender = () => {
+      const planet = this.planets[0];
+      planet.position = new B.Vector3(100 * Math.sin(alpha), this.stars[0].position.y, 100 * Math.cos(alpha));
+      // moon.position = new B.Vector3(5 * Math.sin(alpha), moon.parent.position.y, 5 * Math.cos(alpha));
+
+      alpha += 0.005;
+
+      // spin
+//		planet.rotate(BABYLON.Axis.Y, 0.05, BABYLON.Space.WORLD);
+//		planet.rotate(BABYLON.Axis.Y, 0.05, BABYLON.Space.LOCAL);
+//		moon.rotate(BABYLON.Axis.Y, -0.05, BABYLON.Space.LOCAL);
+    };
+
   }
 }
 
