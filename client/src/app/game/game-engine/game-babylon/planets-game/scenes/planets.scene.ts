@@ -36,15 +36,22 @@ export class PlanetsScene extends MyScene {
     this.setPhysics();
 
     this.baseMaterial = new B.StandardMaterial('base', this);
-    this.baseMaterial.diffuseColor = new B.Color3(1, 1, 1);
+    this.baseMaterial.diffuseColor = new B.Color3(0, 1, 1);
+    this.baseMaterial.specularColor = this.baseMaterial.diffuseColor;
 
     this.selectedMaterial = new B.StandardMaterial('base-red', this);
+    this.baseMaterial.diffuseColor = new B.Color3(0, 1, 1);
+    this.baseMaterial.specularColor = this.baseMaterial.diffuseColor;
+    this.selectedMaterial.emissiveColor = this.baseMaterial.diffuseColor;
+
     this.selectedMaterial.diffuseColor = new B.Color3(1, 0, 0);
-    this.selectedMaterial.emissiveColor = new B.Color3(0.3, 0, 0);
+    this.selectedMaterial.emissiveColor = new B.Color3(1, 0, 0);
 
     this.createStar();
     const guiFolder = this.gameService.gui.addFolder('Scene');
     guiFolder.add(this, 'glowSwitch');
+
+    this.glowSwitch();
 
     this.gameService.gameEmitter.subscribe(event => this.handleGameEvent);
 
@@ -83,10 +90,9 @@ export class PlanetsScene extends MyScene {
     this.camera.setPosition(new B.Vector3(0, 0, -550));
     this.camera.attachControl(this.gameService.game.canvas, true);
     this.camera.panningSensibility = 5;
-    this.camera.pinchDeltaPercentage = 5;
     this.camera.wheelPrecision = 0.5;
     this.ambientColor = new B.Color3(1, 1, 1);
-    this.clearColor = new B.Color4(0, 0, 0.2, 1);
+    this.clearColor = new B.Color4(0.1, 0, 0.2, 1);
 
     // const ambientLight = new B.HemisphericLight('HemiLight', new B.Vector3(100, 0, 0), this);
     // ambientLight.intensity = 0.5;
@@ -115,7 +121,7 @@ export class PlanetsScene extends MyScene {
     });
     const emissiveMaterial = new B.StandardMaterial('emissive', this);
     emissiveMaterial.diffuseColor = new B.Color3(1, 1, 0);
-    emissiveMaterial.emissiveColor = new B.Color3(0.6, 0.6, 0);
+    emissiveMaterial.emissiveColor = new B.Color3(0.9, 0.9, 0);
     star.material = emissiveMaterial;
     this.stars.push(star);
   }
@@ -123,7 +129,7 @@ export class PlanetsScene extends MyScene {
   glowSwitch() {
     if (!this.glowLayer) {
       this.glowLayer = new B.GlowLayer('glow', this, {
-        mainTextureFixedSize: 256,
+        mainTextureFixedSize: 64,
         blurKernelSize: 64
       });
     } else {
@@ -175,15 +181,15 @@ export class PlanetsScene extends MyScene {
   }
 
   private pickPlanet(pickResult: B.PickingInfo) {
-    this.planets.forEach((planetMesh: SpaceObjectMesh) => {
-      planetMesh.lines.isVisible = false;
+    this.removeOrbitLines();
+    this.planets.forEach(planetMesh => {
       planetMesh.material = this.baseMaterial;
-    });
+    })
 
     if (!pickResult.pickedMesh.name.includes('star')) {
       pickResult.pickedMesh.material = this.selectedMaterial;
       this.gameService.store.dispatch(new GameActions.PickPlanet((pickResult.pickedMesh as any).objectState));
-      (pickResult.pickedMesh as SpaceObjectMesh).lines.isVisible = true;
+      this.createOrbitLines(pickResult.pickedMesh as SpaceObjectMesh);
     } else {
       this.gameService.store.dispatch(new GameActions.PickPlanet(null));
     }
@@ -234,13 +240,35 @@ export class PlanetsScene extends MyScene {
     this.beginAnimation(this.camera, 0, 100, false, 2);
   }
 
+  removeOrbitLines() {
+    this.planets.forEach((planetMesh: SpaceObjectMesh) => {
+      if (planetMesh.orbitLines) {
+        planetMesh.orbitLines.dispose();
+        planetMesh.orbitLines = null;
+      }
+    });
+  }
+
   private updatePlanet(existingPlanetMesh: SpaceObjectMesh, newState: Planet) {
     existingPlanetMesh.objectState = R.clone(newState);
     this.animateScale(existingPlanetMesh, newState.radius);
     this.animatePosition(existingPlanetMesh, newState.position.x);
 
+    this.removeOrbitLines();
+    this.createOrbitLines(existingPlanetMesh);
     // existingPlanetMesh.scaling.setAll(newState.radius);
     // existingPlanetMesh.position.set(newState.location.x, newState.location.y, newState.location.z);
+  }
+
+  createOrbitLines(planet: SpaceObjectMesh) {
+    if (planet.orbitLines) {
+      planet.orbitLines.dispose();
+    }
+    const myPoints = [];
+    for (let i = -0.1; i <= 2 * Math.PI; i += 0.1) {
+      myPoints.push(new B.Vector3(planet.objectState.position.x * Math.sin(i), planet.objectState.position.y, planet.objectState.position.x * 0.6 * Math.cos(i)));
+    }
+    planet.orbitLines = B.MeshBuilder.CreateDashedLines(`lines-${planet.id}`, {points: myPoints}, this);
   }
 
   animateScale(target: B.Mesh, scale: number) {
@@ -285,17 +313,6 @@ export class PlanetsScene extends MyScene {
   }
 
   private startSimulation() {
-
-    this.planets.forEach((planet: SpaceObjectMesh) => {
-      const myPoints = [];
-      for (let i = -0.1; i <= 2 * Math.PI; i += 0.1) {
-        myPoints.push(new B.Vector3(planet.objectState.position.x * Math.sin(i), planet.objectState.position.y, planet.objectState.position.x * 0.6 * Math.cos(i)));
-      }
-
-      planet.lines = B.MeshBuilder.CreateLines(`lines-${planet.id}`, {points: myPoints}, this);
-      planet.lines.isVisible = false;
-    });
-
     this.beforeRender = () => {
       this.planets.forEach((planet: SpaceObjectMesh) => {
         const alpha = planet.objectState.tempAlpha;
@@ -319,5 +336,5 @@ export class PlanetsScene extends MyScene {
 export interface SpaceObjectMesh extends B.Mesh {
   objectState: any;
   tempAlpha: number;
-  lines: LinesMesh;
+  orbitLines: LinesMesh;
 }
