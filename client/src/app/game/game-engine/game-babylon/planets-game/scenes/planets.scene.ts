@@ -20,6 +20,8 @@ export class PlanetsScene extends MyScene {
 
   private testPlanet: B.Mesh;
 
+  pickedPlanetMesh: SpaceObjectMesh;
+
   private stars: B.Mesh[] = [];
   private planets: B.Mesh[] = [];
 
@@ -62,6 +64,7 @@ export class PlanetsScene extends MyScene {
     this.createStar();
     const guiFolder = this.gameService.gui.addFolder('Scene');
     guiFolder.add(this, 'glowSwitch');
+    guiFolder.add(this, 'startSimulation');
 
     this.glowSwitch();
 
@@ -93,8 +96,6 @@ export class PlanetsScene extends MyScene {
         filter(state => !!state),
       )
       .subscribe(this.createPlanet.bind(this));
-
-    this.startSimulation();
   }
 
   setCamera() {
@@ -129,7 +130,7 @@ export class PlanetsScene extends MyScene {
 
   createStar() {
     const star = B.MeshBuilder.CreateSphere(`star1`, {
-      diameter: 100,
+      diameter: 400,
     });
     const emissiveMaterial = new B.StandardMaterial('emissive', this);
     emissiveMaterial.diffuseColor = new B.Color3(1, 1, 0);
@@ -202,6 +203,7 @@ export class PlanetsScene extends MyScene {
     if (!pickResult.pickedMesh.name.includes('star')) {
       pickResult.pickedMesh.material = this.selectedMaterial;
       this.gameService.store.dispatch(new GameActions.PickPlanet((pickResult.pickedMesh as any).objectState));
+      this.pickedPlanetMesh = null;
       this.createOrbitLines(pickResult.pickedMesh as SpaceObjectMesh);
     } else {
       this.gameService.store.dispatch(new GameActions.PickPlanet(null));
@@ -222,6 +224,7 @@ export class PlanetsScene extends MyScene {
       }
     ]);
     this.camera.animations.push(animation);
+    this.pickedPlanetMesh = pickResult.pickedMesh as SpaceObjectMesh;
     this.beginAnimation(this.camera, 0, 100, false, 3);
   }
 
@@ -327,6 +330,7 @@ export class PlanetsScene extends MyScene {
 
   private startSimulation() {
     this.beforeRender = () => {
+
       this.planets.forEach((planet: SpaceObjectMesh) => {
         const alpha = planet.objectState.tempAlpha;
         if (!planet.objectState.tempAlpha) {
@@ -339,8 +343,8 @@ export class PlanetsScene extends MyScene {
         planet.objectState.tempAlpha += 0.005 * planet.objectState.speed;
 
         // spin
-        // planet.rotate(B.Axis.Y, 0.05, B.Space.WORLD);
-        // planet.rotate(B.Axis.Y, 0.05, B.Space.LOCAL);
+        planet.rotate(B.Axis.Y, 0.05, B.Space.WORLD);
+        planet.rotate(B.Axis.Y, 0.05, B.Space.LOCAL);
       });
     };
   }

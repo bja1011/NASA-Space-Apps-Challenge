@@ -7,7 +7,9 @@
 
 .left-nav {
   position: fixed;
-  width: 200px;
+  width: 400px;
+  max-width: 20vw;
+  min-width: 220px;
   top: 0;
   background: rgba(255, 255, 255, .9);
   height: 100%;
@@ -15,6 +17,10 @@
 
   &.hidden {
     left: -150px;
+  }
+
+  mat-slider {
+    width: 100%;
   }
 }
 
