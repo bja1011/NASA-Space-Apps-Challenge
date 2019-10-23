@@ -9,6 +9,8 @@ import { MatButtonModule } from '@angular/material';
 import { RootStoreModule } from './store/root-store.module';
 import { UserModuleModule } from './user/user-module.module';
 import { ApiModule } from './api/api.module';
+import { ServiceWorkerModule } from '@angular/service-worker';
+import { environment } from '../environments/environment';
 
 @NgModule({
   declarations: [
@@ -23,8 +25,13 @@ import { ApiModule } from './api/api.module';
     RootStoreModule,
     UserModuleModule,
     ApiModule,
+    ServiceWorkerModule.register('ngsw-worker.js', {
+      enabled: environment.production,
+      registrationStrategy: 'registerImmediately'
+    }),
   ],
   providers: [],
   bootstrap: [AppComponent]
 })
-export class AppModule { }
+export class AppModule {
+}
