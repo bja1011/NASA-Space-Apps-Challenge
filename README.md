@@ -1,4 +1,4 @@
-# Nasa Space Apps Challenge
+# Nasa Space Apps Challenge game PoC
 https://bja1011.github.io/NASA-Space-Apps-Challenge/
 
 ## Installation
